@@ -1,0 +1,128 @@
+<?php
+
+use BitWasp\BitcoinLib\BitcoinLib;
+use BitWasp\BitcoinLib\Jsonrpcclient;
+use BitWasp\BitcoinLib\RawTransaction;
+
+/*
+-- FRIULCOIN --
+PUBKEY_ADDRESS = 35,
+SCRIPT_ADDRESS = 5,
+
+var_dump(dechex(35), dechex(5)); // "23|05"
+
+-- FRIULCOIN TESTNET --
+PUBKEY_ADDRESS_TEST = 111,
+SCRIPT_ADDRESS_TEST = 196,
+
+var_dump(dechex(111), dechex(196)); // "6f|c4"
+ */
+
+require_once(__DIR__. '/../vendor/autoload.php');
+
+// set the magic bytes for friulcoin
+BitcoinLib::setMagicByteDefaults("23|05");
+
+// list of private keys
+/*$keys = [
+    'RA4Z276Mvpoms3ofrZMmdpMiyNRgRfSy1FzpU3Qq3Jxo3NKnVq3Z',
+    'RF15YsTgPrBHbnzf2H6bwt8wtNvftxapcLvUBLVhzzUWvKf4Qdpx'
+];
+*/
+
+$keys = [
+        
+                        'R9XT5mLp114Ri16Wkv49s3fSehMtSLzrTk2u9amr5F4qKQQuY3LQ',
+                        'R8qpqcBWYAHVTZDkad2MEmsjKQZPVRYUzeAqEUDYeSWZnhz8vuqX',
+                        'RFDWYxgh6WGXYPdBW5G88DfeckGdWaPaXJYvjwjb6SCCqN8CsZvK'	
+                        ];
+
+// example UTXO, from `./friulcoin listunspents 0`
+/*
+$inputs = array(
+    array(
+        'txid' => 'f07b6d7e2d18c23697b8b77b8da531345340044b559d9774e1456d53e4ff9d70',
+        'vout' => 1,
+        'address' => 'FP2rYTVc7N945cZNNvfGjUCxC8mLnNcoHM',
+        'scriptPubKey' => "76a914bcb2acee3ec764ac2f4ab042a76956f538915acb88ac",
+        'amount' => BitcoinLib::toSatoshi(1.89990000),
+    )
+);
+*/
+//$ixidf='a7eb73921a439fef41467383cd4a028494f803036ac4330c972bdcc85ab97359';
+$ixidf = 'bfbbc679487aab781304e898f8a508dd6ef5e71d8d2f8f283d74dc696eccbee4';
+$amountid=9.22990000;
+$address_add='FJqhLzywMxh5xywBLPQKH7Na1M29szuVvD';
+$vouts=1; 
+
+// ----------------------------------------------------
+$spk = substr(BitcoinLib::base58_decode($address_add), 2, 40);
+$scriptPubKey_id ='76a914'.$spk.'88ac';
+
+echo $spk;
+
+echo "\n";
+echo $scriptPubKey_id; 
+echo "\n";
+//return;
+//$scriptPubKey_id ='76a914'+$spk+'88ac';
+//                      8eb5eb48c373db22e6bd6f6e5c2c5ad3460f791f
+//$vouts=1;
+// 'user input'
+$inputs = array(
+    array(
+            'txid' => $ixidf,
+            'vout' =>$vouts ,
+            'address' => $address_add,
+            'scriptPubKey' => $scriptPubKey_id,
+            'amount' => BitcoinLib::toSatoshi($amountid),
+                                                )
+                                                ); 
+                                                
+/*
+$currentAddress = 'FJqhLzywMxh5xywBLPQKH7Na1M29szuVvD';                                                
+$spk = substr(BitcoinLib::base58_decode($currentAddress), 2, 40);
+               
+               print_r($spk); echo "\n";                                 
+*/
+$sendTo = 'FKawdZeoZ8gprw4URJAqg6guSNejrrGJtz';
+$sendAmount = BitcoinLib::toSatoshi(0.75);
+
+$changeAddress = 'FJqhLzywMxh5xywBLPQKH7Na1M29szuVvD';
+$fee = BitcoinLib::toSatoshi(0.0001);
+
+// calculate total of input(s)
+$inputsTotal = array_sum(array_column($inputs, 'amount'));
+
+// calculate remaining change
+$change = $inputsTotal - $sendAmount - $fee;
+
+// Set up outputs here.
+$outputs = [
+    $sendTo => $sendAmount
+];
+
+// if there's change then we need another output
+if ($change > 0) {
+    $outputs[$changeAddress] = $change;
+}
+
+var_dump($inputsTotal, $fee, $change, $outputs);
+
+// import private keys
+$wallet = array();
+RawTransaction::private_keys_to_wallet($wallet, $keys);
+
+// Create raw transaction
+$raw_transaction = RawTransaction::create($inputs, $outputs);
+print_r($raw_transaction); echo "\n";
+$sign = RawTransaction::sign($wallet, $raw_transaction, json_encode($inputs));
+print_r($sign); echo "\n";
+
+// Get the transaction hash from the raw transaction
+$txid = RawTransaction::txid_from_raw($sign['hex']);
+echo "</br>";
+print_r($txid); echo "\n";
+
+echo "</br>";
+
